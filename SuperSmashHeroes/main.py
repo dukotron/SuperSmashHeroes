@@ -1,170 +1,152 @@
-import pygame as pyg
+import pygame
 from pygame import *
 
-class Character(pyg.sprite.Sprite):
-    def __init__(self, x, y, direction):
-        pyg.sprite.Sprite.__init__(self)
-        self.x = x
-        self.y = y
-        self.direction = direction
-        self.moving = False
-        self.moving_y = False
-        self.get_down = False
-        self.punch = False
-        self.start_pos = 0
-        self.select = 0
-        self.delay = 0
-        self.delay_punch = 0
-        self.sprites = []
-        self.speed = 0
-        self.speed_y = 0
-        self.display = pyg.display.get_surface()
-        print(self.display)
-
-    def load_sheet(self, start, sprite_size, file):
-        start_x, start_y = start
-        size_x, size_y = sprite_size
-
-        sheet = pyg.image.load(file).convert_alpha()
-        rect = sheet.get_rect()
-        for i in range(0, rect.height, size_y):
-            for i in range(0, rect.width, size_x):
-                sheet.set_clip(pyg.Rect(start_x, start_y, size_x, size_y))
-                sprite = sheet.subsurface(sheet.get_clip())
-                #sprite = pyg.transform.scale(sprite, (512, 512))
-                self.sprites.append(sprite)
-                start_x += size_x
-            start_y += size_y
-            start_x = 0
-        print(self.sprites)
+class Player(pygame.sprite.Sprite):
+    def __init__(self, rect, image, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.rect = rect
+        self.rect.x = x
+        self.rect.y = y
+        self.image = image
+        self.speedx = 0
+        self.speedy = 8
+        self.njump = 0
+        self.colided = False
+        self.display = pygame.display.get_surface()
 
     def update(self):
-        self.x += self.speed
-        self.y += self.speed_y
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
 
-        if self.punch == True:
-            self.delay_punch += 1
-        
-        if round(self.speed_y, 1) == 10.0 and self.moving_y == True:
-            self.speed_y = 0
-            self.moving_y == False
-            print(round(self.start_pos, 0))
-        elif self.speed_y != 0 and self.moving_y == True:
-            self.speed_y += 0.4
-        
-        if self.moving == True and self.get_down == False:
-            self.delay += 1
-        if self.select == len(self.sprites) - 9 and self.delay == 9 and self.moving == True and self.get_down == False:
-            self.select = 0
-            self.delay = 0
-        elif self.delay == 9 and self.moving == True and self.get_down == False:
-            self.select += 1
-            self.delay = 0
-            
+        self.display.blit(self.image, (self.rect.x, self.rect.y))
 
-        sprite = self.sprites[self.select]
-        if self.direction == 1 and self.get_down != True and self.punch != True:
-            self.display.blit(sprite, (self.x, self.y))
-        elif self.get_down == True and self.direction == 1 and self.punch != True:
-            sprite = self.sprites[7]
-            self.display.blit(sprite, (self.x, self.y))
-        elif self.get_down == True and self.direction == 0 and self.punch != True:
-            sprite = self.sprites[7]
-            sprite = pyg.transform.flip(sprite, True, False)
-            self.display.blit(sprite, (self.x, self.y))
-        elif self.get_down == False and self.direction == 1 and self.punch == True:
-            sprite = self.sprites[8]
-            self.display.blit(sprite, (self.x, self.y))
-            if self.delay_punch == 7:
-                self.punch = False
-                self.delay_punch = 0
-        elif self.get_down == False and self.direction == 0 and self.punch == True:
-            sprite = self.sprites[8]
-            sprite = pyg.transform.flip(sprite, True, False)
-            self.display.blit(sprite, (self.x, self.y))
-            if self.delay_punch == 7:
-                self.punch = False
-                self.delay_punch = 0
-        else:
-            sprite = pyg.transform.flip(sprite, True, False)
-            self.display.blit(sprite, (self.x, self.y))
+    def move_r(self):
+        self.speedx = 4
 
-    def move_left(self):
-        self.direction = 0
-        self.moving = True
-        self.speed = -2
-        
-    def move_right(self):
-        self.direction = 1
-        self.moving = True
-        self.speed = 2
+    def move_l(self):
+        self.speedx = -4
 
     def jump(self):
-        self.start_pos = self.y
-        print(self.start_pos)
-        self.speed_y = -10
-        self.moving_y = True
-
-    def crouch(self):
-        self.get_down = True
-
-    def punch1(self):
-        self.punch = True
-
-    def stop(self, event):
-        if event == pyg.K_LEFT and self.speed != 2.0:
-            self.speed = 0
-            self.moving = False
-        elif event == pyg.K_RIGHT and self.speed != -2.0:
-            self.speed = 0
-            self.moving = False
-        elif event == pyg.K_DOWN:
-            self.get_down = False
-        
-
-def main():
-    pyg.init()
-    info = pyg.display.Info()
-    print(info)
-    display = pyg.display.set_mode((800, 600), pyg.RESIZABLE)
-    clock = pyg.time.Clock()
-
-    direction = 0 # 0 - Left 1 - Right
-    gray = (182, 182, 182)
-
-    Im = Character(0, 192, 1)
-    Im.load_sheet((0, 0), (256, 256), "Sheetx.png")
-    
-    while True:
-        event = pyg.event.poll()
-
-        if event.type == pyg.QUIT:
-            break
-        elif event.type == pyg.VIDEORESIZE:
-            display = pyg.display.set_mode((event.w, event.h), pyg.RESIZABLE)
-        elif event.type == pyg.KEYDOWN:
-            if event.key == pyg.K_LEFT:
-                Im.move_left()
-            elif event.key == pyg.K_RIGHT:
-                Im.move_right()
-            elif event.key == pyg.K_UP:
-                Im.jump()
-            elif event.key == pyg.K_DOWN:
-                Im.crouch()
-            elif event.key == pyg.K_j:
-                Im.punch1()
-        elif event.type == pyg.KEYUP:
-            Im.stop(event.key)
+        if self.njump == 2:
+            pass
+        else:
+            self.speedy = -10
+            self.njump += 1
             
 
-        display.fill(gray)
-        Im.update()
+    def stop(self, event):
+        if event == pygame.K_RIGHT and self.speedx != -4:
+            self.speedx = 0
+        elif event == pygame.K_LEFT and self.speedx != 4:
+            self.speedx = 0
 
-        pyg.display.update()
-        clock.tick(60)
-        pyg.display.set_caption("Super smash heroes(lelel) FPS: " + str(round(clock.get_fps(), 0)))
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, x1, y1, image):
+        pygame.sprite.Sprite.__init__(self)
+        self.rect = pygame.Rect(x, y, x1, y1)
+        self.image = image
+        self.display = pygame.display.get_surface()
+
+    def draw(self, x, x1, y, info):
+        for i in range(x, x1):
+            self.display.blit(self.image, (32*i, info.current_h//4*y))
         
-    pyg.quit()
+def main():
+    pygame.init()
+    info = pygame.display.Info()
+    display = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    clock = pygame.time.Clock()
+
+    background = pygame.image.load("portal.jpg").convert_alpha()
+    background = pygame.transform.scale(background, (info.current_w, info.current_h))
+
+    font = pygame.font.SysFont("comicsansms", 24)
+
+    player = Player(pygame.Rect(0, 0, 40, 86), pygame.image.load("Sprite.png").convert_alpha(),
+                    info.current_w//2 - 20, -130)
+    #takes start pos and then size not end pos!
+    platform_top = Platform(info.current_w//12*4, info.current_h//4, info.current_w//12*4, 1,
+                            pygame.image.load("tile.png").convert_alpha())
+    platform_midl = Platform(info.current_w//12, info.current_h//4*2, info.current_w//12*2, 32,
+                            pygame.image.load("tile.png").convert_alpha())
+    platform_midd = Platform(info.current_w//12*5, info.current_h//4*2, info.current_w//12*2, 32,
+                            pygame.image.load("tile.png").convert_alpha())
+    platform_midr = Platform(info.current_w//12*9, info.current_h//4*2, info.current_w//12*2, 32,
+                            pygame.image.load("tile.png").convert_alpha())
+    platform_botl = Platform(info.current_w//12*2, info.current_h//4*3, info.current_w//12*3, 32,
+                            pygame.image.load("tile.png").convert_alpha())
+    platform_botr = Platform(info.current_w//12*7, info.current_h//4*3, info.current_w//12*3, 32,
+                            pygame.image.load("tile.png").convert_alpha())
+    
+    while True:
+        event = pygame.event.poll()
+
+        if event.type == pygame.QUIT:
+            break
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                player.move_l()
+            elif event.key == pygame.K_RIGHT:
+                player.move_r()
+            elif event.key == pygame.K_UP:
+                player.jump()
+            elif event.key == pygame.K_DOWN:
+                print("")
+            elif event.key == pygame.K_j:
+                print("")
+            elif event.key == pygame.K_F1:
+                pygame.display.iconify()
+        elif event.type == pygame.KEYUP:
+            player.stop(event.key)
+            
+
+        display.blit(background, (0, 0))
+        display.blit(font.render("FPS: " + str(int(clock.get_fps())), 1, (0,0,0)), (0,0))
+
+        if pygame.sprite.collide_rect(player, platform_top) == True and player.speedy > 0:
+            player.rect.y = info.current_h//4 - 85
+            player.speedy = 0
+            player.njump = 0
+        elif pygame.sprite.collide_rect(player, platform_midl) == True and player.speedy > 0:
+            player.speedy = 0
+            player.rect.y = info.current_h//4*2 - 85
+            player.njump = 0
+        elif pygame.sprite.collide_rect(player, platform_midd) == True and player.speedy > 0:
+            player.speedy = 0
+            player.rect.y = info.current_h//4*2 - 85
+            player.njump = 0
+        elif pygame.sprite.collide_rect(player, platform_midr) == True and player.speedy > 0:
+            player.speedy = 0
+            player.rect.y = info.current_h//4*2 - 85
+            player.njump = 0
+        elif pygame.sprite.collide_rect(player, platform_botl) == True and player.speedy > 0:
+            player.speedy = 0
+            player.rect.y = info.current_h//4*3 - 85
+            player.njump = 0
+        elif pygame.sprite.collide_rect(player, platform_botr) == True and player.speedy > 0:
+            player.speedy = 0
+            player.rect.y = info.current_h//4*3 - 85
+            player.njump = 0
+        else:
+            player.speedy += 0.35
+        
+        player.update()
+        #screen divided into 60 32x32 squares in width divided in groups of 5,
+        #first parameter is first square pos(x axis),
+        #second is last square pos(x axis), height is divided into quarters of screen,
+        #third parameter is which quarter the platform is on, last parameter is the screen info
+        platform_top.draw((info.current_w // 32)//12*4, (info.current_w // 32)//12*8, 1, info)
+        platform_midl.draw((info.current_w // 32)//12, (info.current_w // 32)//12*3, 2, info)
+        platform_midd.draw((info.current_w // 32)//12*5, (info.current_w // 32)//12*7, 2, info)
+        platform_midd.draw((info.current_w // 32)//12*9, (info.current_w // 32)//12*11, 2, info)
+        platform_botl.draw((info.current_w // 32)//12*2, (info.current_w // 32)//12*5, 3, info)
+        platform_botr.draw((info.current_w // 32)//12*7, (info.current_w // 32)//12*10, 3, info)
+
+        pygame.display.update()
+        clock.tick(60)
+        pygame.display.set_caption("Super Smash Heroes")
+        
+    pygame.quit()
 
 if __name__ == "__main__":
     main()
