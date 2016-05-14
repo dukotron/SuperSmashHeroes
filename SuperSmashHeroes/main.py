@@ -117,7 +117,7 @@ def main():
                             pygame.image.load("tile.png").convert_alpha()))
     platforms.append(Platform(info.current_w//12*9, info.current_h//4*2, info.current_w//12*2, 32,
                             pygame.image.load("tile.png").convert_alpha()))
-    platforms.append(PPlatform(info.current_w//12*7, info.current_h//4*3, info.current_w//12*3, 32,
+    platforms.append(Platform(info.current_w//12*7, info.current_h//4*3, info.current_w//12*3, 32,
                             pygame.image.load("tile.png").convert_alpha()))
     platforms.append(Platform(info.current_w//12*2, info.current_h//4*3, info.current_w//12*3, 32,
                             pygame.image.load("tile.png").convert_alpha()))
