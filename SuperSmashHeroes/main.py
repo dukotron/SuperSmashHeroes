@@ -14,7 +14,7 @@ class Player(pygame.sprite.Sprite):
         self.colided = False
         self.display = pygame.display.get_surface()
 
-    def update(self, evet):
+    def update(self, event, world):
         # input
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
@@ -33,32 +33,12 @@ class Player(pygame.sprite.Sprite):
                 player.stop(event.key)
         
         # collision
-        if pygame.sprite.collide_rect(self, platform_top) == True and self.speedy > 0:
-            self.rect.y = info.current_h//4 - 85
-            self.speedy = 0
-            self.njump = 0
-        elif pygame.sprite.collide_rect(self, platform_midl) == True and self.speedy > 0:
-            self.speedy = 0
-            self.rect.y = info.current_h//4*2 - 85
-            self.njump = 0
-        elif pygame.sprite.collide_rect(self, platform_midd) == True and self.speedy > 0:
-            self.speedy = 0
-            self.rect.y = info.current_h//4*2 - 85
-            self.njump = 0
-        elif pygame.sprite.collide_rect(self, platform_midr) == True and self.speedy > 0:
-            self.speedy = 0
-            self.rect.y = info.current_h//4*2 - 85
-            self.njump = 0
-        elif pygame.sprite.collide_rect(self, platform_botl) == True and self.speedy > 0:
-            self.speedy = 0
-            self.rect.y = info.current_h//4*3 - 85
-            self.njump = 0
-        elif pygame.sprite.collide_rect(self, platform_botr) == True and self.speedy > 0:
-            self.speedy = 0
-            self.rect.y = info.current_h//4*3 - 85
-            self.njump = 0
-        else:
-            self.speedy += 0.35
+        self.speedy += 0.35
+        for pl in world:
+            if pygame.sprite.collide_rect(self, pl) == True and self.speedy > 0:
+                self.rect.y = info.current_h//4 - 85
+                self.speedy = 0
+                self.njump = 0
         
         # move
         self.rect.x += self.speedx
@@ -133,7 +113,7 @@ def main():
         display.blit(background, (0, 0))
         display.blit(font.render("FPS: " + str(int(clock.get_fps())), 1, (0,0,0)), (0,0))
         
-        player.update(event)
+        player.update(event, platforms)
         
         
         #screen divided into 60 32x32 squares in width divided in groups of 5,
