@@ -16,6 +16,7 @@ class Player(pygame.sprite.Sprite):
         self.moving = False
         self.jumped = False
         self.fall = True
+        self.shoot = False
         self.sprites = []
         self.display = pygame.display.get_surface()
 
@@ -40,12 +41,17 @@ class Player(pygame.sprite.Sprite):
         self.x += self.speedx
         self.y += self.speedy
 
-        if self.moving == True:
+        if self.moving == True or self.shoot == True:
             self.delay += 1
         if self.speedy > 2:
             self.fall = True
 
-        if self.fall == True:
+        if self.shoot == True:
+            self.select = 9
+            if self.delay == 18:
+                self.delay = 0
+                self.shoot = False
+        elif self.fall == True:
             self.select = 8
             self.delay = 0
         elif self.jumped == True:
@@ -88,6 +94,9 @@ class Player(pygame.sprite.Sprite):
             self.jumped = True
             self.fall = False
             self.njump += 1
+
+    def atk1(self):
+        self.shoot = True
             
     def stop(self, event):
         if event == pygame.K_RIGHT and self.speedx != -4:
@@ -107,6 +116,26 @@ class Platform(pygame.sprite.Sprite):
     def draw(self, x, x1, y, info):
         for i in range(x, x1):
             self.display.blit(self.image, (32*i, info.current_h//4*y))
+
+class Projectile(pygame.sprite.Sprite):
+    def __init__(self, rect, image, direction):
+        pygame.sprite.Sprite.__init__(self)
+        self.rect = rect
+        self.image = image
+        self.speed = 10
+        self.direction = direction
+        self.display = pygame.display.get_surface()
+
+    def fire(self):
+        if self.direction == 1:
+            self.rect.x += self.speed
+        else:
+            self.rect.x -= self.speed
+
+        if self.rect.x < 1920 or self.rect.x > 0:
+            self.display.blit(self.image, (self.rect.x, self.rect.y))
+        else:
+            self.kill()
         
 def main():
     pygame.init()
@@ -134,7 +163,9 @@ def main():
                             pygame.image.load("tile.png").convert_alpha())
     platform_botr = Platform(info.current_w//12*7, info.current_h//4*3, info.current_w//12*3, 32,
                             pygame.image.load("tile.png").convert_alpha())
-    
+
+    proj = []
+    fire = False
     while True:
         event = pygame.event.poll()
 
@@ -150,7 +181,9 @@ def main():
             elif event.key == pygame.K_DOWN:
                 print("")
             elif event.key == pygame.K_j:
-                print("")
+                player.atk1()
+                proj.append(Projectile(pygame.Rect(player.x + 20, player.y + 10, 40, 20), pygame.image.load("pew.png").convert_alpha(), player.direction))
+                fire = True
             elif event.key == pygame.K_F1:
                 pygame.display.iconify()
         elif event.type == pygame.KEYUP:
@@ -199,6 +232,9 @@ def main():
             player.speedy += 0.35
         
         player.update()
+        if fire == True:
+            for one in proj:
+                one.fire()
         #screen divided into 60 32x32 squares in width divided in groups of 5,
         #first parameter is first square pos(x axis),
         #second is last square pos(x axis), height is divided into quarters of screen,
