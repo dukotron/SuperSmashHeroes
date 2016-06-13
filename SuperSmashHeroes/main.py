@@ -2,24 +2,25 @@ import pygame
 from pygame import *
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, pos_x, pos_y):
         pygame.sprite.Sprite.__init__(self)
-        self.x = x
-        self.y = y
-        self.rect = pygame.Rect(self.x, self.y+80, 40, 86)
-        self.speedx = 0
-        self.speedy = 8
-        self.njump = 0
+        self.pos_x = pos_x
+        self.pos_y = pos_y
+        self.speed_x = 0
+        self.speed_y = 8
+        self.sprites = []
+        #related to horizontal movement
+        self.moving = False
         self.delay = 0
         self.select = 0
         self.direction = 1
-        self.moving = False
+        #related to vertical movement
+        self.jump = 0
         self.jumped = False
-        self.fall = True
+        #related to attack
         self.shoot = False
-        self.sprites = []
-        self.display = pygame.display.get_surface()
-
+        self.projectiles = []
+        
     def load_sheet(self, start, sprite_size, file):
         start_x, start_y = start
         size_x, size_y = sprite_size
@@ -30,99 +31,108 @@ class Player(pygame.sprite.Sprite):
             for i in range(0, rect.width, size_x):
                 sheet.set_clip(pygame.Rect(start_x, start_y, size_x, size_y))
                 sprite = sheet.subsurface(sheet.get_clip())
-                #sprite = pygame.transform.scale(sprite, (192, 192))
+                #sprite = pygame.transform.scale(sprite, (512, 512))
                 self.sprites.append(sprite)
                 start_x += size_x
 
             start_y += size_y
             start_x = 0
 
-    def update(self):
-        self.x += self.speedx
-        self.y += self.speedy
+    def collision(self, platforms):
+        collidedp = self.rect.collidelist(platforms)
+        
+        if collidedp != -1 and self.speed_y > 0:
+            self.speed_y = 0
+            self.pos_y = platforms[collidedp].pos_y - 84
+            self.jumped = False
+            self.jump = 0
+        elif collidedp == -1:
+            self.speed_y += 0.35
 
+    def update(self, display, platforms):
+        self.pos_x += self.speed_x
+        self.pos_y += self.speed_y
+        self.rect = pygame.Rect(self.pos_x, self.pos_y + 84, 40, 2)
+
+        self.collision(platforms)
         if self.moving == True or self.shoot == True:
             self.delay += 1
-        if self.speedy > 2:
-            self.fall = True
 
         if self.shoot == True:
             self.select = 9
             if self.delay == 18:
                 self.delay = 0
                 self.shoot = False
-        elif self.fall == True:
-            self.select = 8
-            self.delay = 0
         elif self.jumped == True:
             self.select = 7
             self.delay = 0
-        elif self.select >= 6 and self.delay == 9 and self.moving == True:
-            self.select = 1
-            self.delay = 0
-        elif self.delay == 9 and self.moving == True and self.jumped == False:
-            self.select += 1
-            self.delay = 0
-        elif self.moving == False and self.jumped == False and self.fall == False:
+        elif self.moving == True and self.delay == 9:
+            if self.select >= 6:
+                self.select = 1
+                self.delay = 0
+            else:
+                self.select += 1
+                self.delay = 0
+        elif self.moving == False:
             self.select = 0
             self.delay = 0
 
-        sprite = self.sprites[self.select]
+        sprite = self.sprites[self.select]   
         if self.direction == 1:
-            self.rect = pygame.Rect(self.x, self.y+84, 40, 2)
-            self.display.blit(sprite, (self.x, self.y))
+            display.blit(sprite, (self.pos_x, self.pos_y))
         else:
-            self.rect = pygame.Rect(self.x, self.y+84, 40, 2)
             sprite = pygame.transform.flip(sprite, True, False)
-            self.display.blit(sprite, (self.x, self.y))
+            display.blit(sprite, (self.pos_x, self.pos_y))
+
+        for one in self.projectiles:
+            one.fire()
+
+    def move(self, event):
+        if event.key == pygame.K_RIGHT:
+            self.speed_x = 4
+            self.moving = True
+            self.direction = 1
+        elif event.key == pygame.K_LEFT:
+            self.speed_x = -4
+            self.moving = True
+            self.direction = 0
+        elif event.key == pygame.K_UP:
+            if self.jump == 2:
+                pass
+            else:
+                self.speed_y = -10
+                self.jumped = True
+                self.jump += 1
+        elif event.key == pygame.K_h:
+            self.shoot = True
+            self.projectiles.append(Projectile(self.pos_x, self.pos_y, self.direction))
             
-    def move_r(self):
-        self.speedx = 4
-        self.moving = True
-        self.direction = 1
 
-    def move_l(self):
-        self.speedx = -4
-        self.moving = True
-        self.direction = 0
-
-    def jump(self):
-        if self.njump == 2:
-            pass
-        else:
-            self.speedy = -10
-            self.jumped = True
-            self.fall = False
-            self.njump += 1
-
-    def atk1(self):
-        self.shoot = True
-            
     def stop(self, event):
-        if event == pygame.K_RIGHT and self.speedx != -4:
-            self.speedx = 0
+        if event.key == pygame.K_RIGHT and self.speed_x != -4:
+            self.speed_x = 0
             self.moving = False
-        elif event == pygame.K_LEFT and self.speedx != 4:
-            self.speedx = 0
+        elif event.key == pygame.K_LEFT and self.speed_x != 4:
+            self.speed_x = 0
             self.moving = False
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, x1, y1, image):
+    def __init__(self, pos_x, pos_y, length, height, image):
         pygame.sprite.Sprite.__init__(self)
-        self.rect = pygame.Rect(x, y, x1, y1)
-        self.image = image
-        self.display = pygame.display.get_surface()
+        self.pos_y = pos_y #used to calculate fall missplacement
+        self.rect = pygame.Rect(pos_x, pos_y, length*32, height)
+        self.image = pygame.image.load(image).convert_alpha()
 
-    def draw(self, x, x1, y, info):
-        for i in range(x, x1):
-            self.display.blit(self.image, (32*i, info.current_h//4*y))
+    def draw(self, pos_x, pos_y, length, display):
+        for i in range(0, length):
+            display.blit(self.image, (pos_x + 32 * i, pos_y))
 
 class Projectile(pygame.sprite.Sprite):
-    def __init__(self, rect, image, direction):
+    def __init__(self, pos_x, pos_y, direction):
         pygame.sprite.Sprite.__init__(self)
-        self.rect = rect
-        self.image = image
-        self.speed = 10
+        self.rect = Rect(pos_x + 20, pos_y + 10, 40, 20)
+        self.image = pygame.image.load("pew.png").convert_alpha()
+        self.speed = 20
         self.direction = direction
         self.display = pygame.display.get_surface()
 
@@ -132,120 +142,62 @@ class Projectile(pygame.sprite.Sprite):
         else:
             self.rect.x -= self.speed
 
-        if self.rect.x < 1920 or self.rect.x > 0:
-            self.display.blit(self.image, (self.rect.x, self.rect.y))
-        else:
+        if self.rect.x > 1920 or self.rect.x < 0:
             self.kill()
-        
+        else:
+            self.display.blit(self.image, (self.rect.x, self.rect.y))
+
 def main():
     pygame.init()
     info = pygame.display.Info()
     display = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     clock = pygame.time.Clock()
 
-    background = pygame.image.load("portal.jpg").convert_alpha()
+    background = pygame.image.load("placeholderbg.jpg").convert_alpha()
     background = pygame.transform.scale(background, (info.current_w, info.current_h))
 
     font = pygame.font.SysFont("comicsansms", 24)
 
     player = Player(info.current_w//2 - 20, -130)
-    player.load_sheet((0, 0), (40, 86), "pls.png")
-    #takes start pos and then size not end pos!
-    platform_top = Platform(info.current_w//12*4, info.current_h//4, info.current_w//12*4, 16,
-                            pygame.image.load("tile.png").convert_alpha())
-    platform_midl = Platform(info.current_w//12, info.current_h//4*2, info.current_w//12*2, 16,
-                            pygame.image.load("tile.png").convert_alpha())
-    platform_midd = Platform(info.current_w//12*5, info.current_h//4*2, info.current_w//12*2, 16,
-                            pygame.image.load("tile.png").convert_alpha())
-    platform_midr = Platform(info.current_w//12*9, info.current_h//4*2, info.current_w//12*2, 16,
-                            pygame.image.load("tile.png").convert_alpha())
-    platform_botl = Platform(info.current_w//12*2, info.current_h//4*3, info.current_w//12*3, 32,
-                            pygame.image.load("tile.png").convert_alpha())
-    platform_botr = Platform(info.current_w//12*7, info.current_h//4*3, info.current_w//12*3, 32,
-                            pygame.image.load("tile.png").convert_alpha())
+    player.load_sheet((0, 0), (40, 86), "placeholder.png")
 
-    proj = []
-    fire = False
+    #t = top, m = middle, b = bottom, l/r = left/right, p = platform
+    #0-tp, 1-mlp, 2-mmp, 3-mrp, 4-blp, 5-brp
+    #(x,y - starting corner, a - length in blocks of 32x32, b - height of collision)
+    platforms = []
+    platforms.append(Platform(info.current_w // 60 * 20, info.current_h // 4, 20, 16, "placeholdert.png"))
+    platforms.append(Platform(info.current_w // 60 * 5, info.current_h // 4 * 2, 10, 16, "placeholdert.png"))
+    platforms.append(Platform(info.current_w // 60 * 25, info.current_h // 4 * 2, 10, 16, "placeholdert.png"))
+    platforms.append(Platform(info.current_w // 60 * 45, info.current_h // 4 * 2, 10, 16, "placeholdert.png"))
+    platforms.append(Platform(info.current_w // 60 * 10, info.current_h // 4 * 3, 15, 24, "placeholdert.png"))
+    platforms.append(Platform(info.current_w // 60 * 35, info.current_h // 4 * 3, 15, 24, "placeholdert.png"))
+
     while True:
         event = pygame.event.poll()
 
         if event.type == pygame.QUIT:
             break
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                player.move_l()
-            elif event.key == pygame.K_RIGHT:
-                player.move_r()
-            elif event.key == pygame.K_UP:
-                player.jump()
-            elif event.key == pygame.K_DOWN:
-                print("")
-            elif event.key == pygame.K_j:
-                player.atk1()
-                proj.append(Projectile(pygame.Rect(player.x + 20, player.y + 10, 40, 20), pygame.image.load("pew.png").convert_alpha(), player.direction))
-                fire = True
-            elif event.key == pygame.K_F1:
-                pygame.display.iconify()
+            if event.key == pygame.K_ESCAPE:
+                break
+            else:
+                player.move(event)
         elif event.type == pygame.KEYUP:
-            player.stop(event.key)
-            
+            player.stop(event)
+
         display.blit(background, (0, 0))
         display.blit(font.render("FPS: " + str(int(clock.get_fps())), 1, (0,0,0)), (0,0))
 
-        if pygame.sprite.collide_rect(player, platform_top) ==  True and player.speedy > 0:
-            player.speedy = 0
-            player.y = info.current_h//4 - 85
-            player.njump = 0
-            player.jumped = False
-            player.fall = False
-        elif pygame.sprite.collide_rect(player, platform_midl) == True and player.speedy > 0:
-            player.speedy = 0
-            player.y = info.current_h//4*2 - 85
-            player.njump = 0
-            player.jumped = False
-            player.fall = False
-        elif pygame.sprite.collide_rect(player, platform_midd) == True and player.speedy > 0:
-            player.speedy = 0
-            player.y = info.current_h//4*2 - 85
-            player.njump = 0
-            player.jumped = False
-            player.fall = False
-        elif pygame.sprite.collide_rect(player, platform_midr) == True and player.speedy > 0:
-            player.speedy = 0
-            player.y = info.current_h//4*2 - 85
-            player.njump = 0
-            player.jumped = False
-            player.fall = False
-        elif pygame.sprite.collide_rect(player, platform_botl) == True and player.speedy > 0:
-            player.speedy = 0
-            player.y = info.current_h//4*3 - 85
-            player.njump = 0
-            player.jumped = False
-            player.fall = False
-        elif pygame.sprite.collide_rect(player, platform_botr) == True and player.speedy > 0:
-            player.speedy = 0
-            player.y = info.current_h//4*3 - 85
-            player.njump = 0
-            player.jumped = False
-            player.fall = False
-        else:
-            player.speedy += 0.35
         
-        player.update()
-        if fire == True:
-            for one in proj:
-                one.fire()
-        #screen divided into 60 32x32 squares in width divided in groups of 5,
-        #first parameter is first square pos(x axis),
-        #second is last square pos(x axis), height is divided into quarters of screen,
-        #third parameter is which quarter the platform is on, last parameter is the screen info
-        platform_top.draw((info.current_w // 32)//12*4, (info.current_w // 32)//12*8, 1, info)
-        platform_midl.draw((info.current_w // 32)//12, (info.current_w // 32)//12*3, 2, info)
-        platform_midd.draw((info.current_w // 32)//12*5, (info.current_w // 32)//12*7, 2, info)
-        platform_midd.draw((info.current_w // 32)//12*9, (info.current_w // 32)//12*11, 2, info)
-        platform_botl.draw((info.current_w // 32)//12*2, (info.current_w // 32)//12*5, 3, info)
-        platform_botr.draw((info.current_w // 32)//12*7, (info.current_w // 32)//12*10, 3, info)
-
+        player.update(display, platforms)
+        #x,y - 32x32 corner start pos, a - length of platform in 32x32 blocks
+        platforms[0].draw(info.current_w // 60 * 20, info.current_h // 4, 20, display)
+        platforms[1].draw(info.current_w // 60 * 5, info.current_h // 4 * 2, 10, display)
+        platforms[2].draw(info.current_w // 60 * 25, info.current_h // 4 * 2, 10, display)
+        platforms[3].draw(info.current_w // 60 * 45, info.current_h // 4 * 2, 10, display)
+        platforms[4].draw(info.current_w // 60 * 10, info.current_h // 4 * 3, 15, display)
+        platforms[5].draw(info.current_w // 60 * 35, info.current_h // 4 * 3, 15, display)
+        
         pygame.display.update()
         clock.tick(60)
         pygame.display.set_caption("Super Smash Heroes")
@@ -254,3 +206,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
