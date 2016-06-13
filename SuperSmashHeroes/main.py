@@ -20,6 +20,11 @@ class Player(pygame.sprite.Sprite):
         #related to attack
         self.shoot = False
         self.projectiles = []
+        #related to hp
+        self.p1img = pygame.image.load("CharacterInfo.png").convert_alpha()
+        self.hp = 154
+        self.death = 0
+        self.dead = False
         
     def load_sheet(self, start, sprite_size, file):
         start_x, start_y = start
@@ -46,8 +51,20 @@ class Player(pygame.sprite.Sprite):
             self.pos_y = platforms[collidedp].pos_y - 84
             self.jumped = False
             self.jump = 0
-        elif collidedp == -1:
+        elif collidedp == -1 and self.dead == False:
             self.speed_y += 0.35
+
+        if self.pos_y > 1080 and self.hp > 0:
+            self.hp -= 5
+            self.dead = True
+        elif self.hp <= 0 and self.death == 100:
+            self.hp = 154
+            self.pos_y = -130
+            self.death = 0
+            self.dead = False
+        elif self.dead == True:
+            self.death += 1
+        
 
     def update(self, display, platforms):
         self.pos_x += self.speed_x
@@ -85,15 +102,18 @@ class Player(pygame.sprite.Sprite):
             display.blit(sprite, (self.pos_x, self.pos_y))
 
         for one in self.projectiles:
-            one.fire()
+            one.fire(display)
+
+        pygame.draw.rect(display, (255,0,0), (114, 968, self.hp, 18))
+        display.blit(self.p1img, (16, 934))
 
     def move(self, event):
         if event.key == pygame.K_RIGHT:
-            self.speed_x = 4
+            self.speed_x = 3
             self.moving = True
             self.direction = 1
         elif event.key == pygame.K_LEFT:
-            self.speed_x = -4
+            self.speed_x = -3
             self.moving = True
             self.direction = 0
         elif event.key == pygame.K_UP:
@@ -109,10 +129,10 @@ class Player(pygame.sprite.Sprite):
             
 
     def stop(self, event):
-        if event.key == pygame.K_RIGHT and self.speed_x != -4:
+        if event.key == pygame.K_RIGHT and self.speed_x != -3:
             self.speed_x = 0
             self.moving = False
-        elif event.key == pygame.K_LEFT and self.speed_x != 4:
+        elif event.key == pygame.K_LEFT and self.speed_x != 3:
             self.speed_x = 0
             self.moving = False
 
@@ -134,9 +154,8 @@ class Projectile(pygame.sprite.Sprite):
         self.image = pygame.image.load("pew.png").convert_alpha()
         self.speed = 20
         self.direction = direction
-        self.display = pygame.display.get_surface()
 
-    def fire(self):
+    def fire(self, display):
         if self.direction == 1:
             self.rect.x += self.speed
         else:
@@ -145,7 +164,7 @@ class Projectile(pygame.sprite.Sprite):
         if self.rect.x > 1920 or self.rect.x < 0:
             self.kill()
         else:
-            self.display.blit(self.image, (self.rect.x, self.rect.y))
+            display.blit(self.image, (self.rect.x, self.rect.y))
 
 def main():
     pygame.init()
