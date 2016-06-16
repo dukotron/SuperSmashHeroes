@@ -1,2 +1,2 @@
-# Super Smash Heroes
-Super Smash Bros inspired super hero game
+# Super Smash Heroes(temp)
+Platformer superhero fighting game in development
