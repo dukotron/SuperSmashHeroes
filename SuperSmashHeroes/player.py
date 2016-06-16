@@ -114,13 +114,6 @@ class Entity(pygame.sprite.Sprite):
         for one in self.projectiles:
             one.fire(display)
 
-        if self.count == 1:
-            pygame.draw.rect(display, (255,0,0), (1803, 968, -self.hp*self.ratio, 18))
-            display.blit(self.p1img, (1392, 934))
-        if self.count == 0:
-            pygame.draw.rect(display, (255,0,0), (118, 968, self.hp*self.ratio, 18))
-            display.blit(self.p1img, (16, 934))
-
 class Player1(Entity):
     def __init__(self, count, ch):
         Entity.__init__(self, count, ch)
