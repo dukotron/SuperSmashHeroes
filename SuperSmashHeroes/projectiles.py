@@ -20,7 +20,7 @@ class Projectile(pygame.sprite.Sprite):
         else:
             self.rect.x -= self.speed
 
-        if self.rect.x > 1920 or self.rect.x < 0:
+        if self.rect.x > 1920 or self.rect.x < -40:
             del self
         else:
             display.blit(self.image, (self.rect.x, self.rect.y))
